@@ -88,7 +88,8 @@ export const redirectUrl = async (req, res, next) => {
 
     if (!urlDoc) {
       // If the short URL isn't found, redirect the browser to the frontend's 404 page
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const frontendUrl =
+        process.env.FRONTEND_URL || process.env.BASE_URL || "http://localhost:5173";
       return res.redirect(302, `${frontendUrl}/not-found`);
     }
 

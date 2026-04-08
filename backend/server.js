@@ -19,11 +19,26 @@ const app = express();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
-// Enable CORS for the Vite dev server
+// Allow local dev frontend + deployed frontend URL from env
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+  process.env.BASE_URL,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
+    origin(origin, callback) {
+      // Allow no-origin requests (health checks, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("CORS blocked for this origin"));
+    },
+    methods: ["GET", "POST", "OPTIONS"],
   })
 );
 

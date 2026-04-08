@@ -3,8 +3,13 @@
 
 import axios from "axios";
 
-// Backend base URL
-const BACKEND_BASE = "http://localhost:5000";
+// Backend base URL:
+// 1) Use VITE_API_BASE_URL when provided (recommended for production)
+// 2) In dev, default to local backend
+// 3) In production with same-domain deploy, fallback to current origin
+const configuredBase = import.meta.env.VITE_API_BASE_URL?.trim();
+const runtimeOrigin = typeof window !== "undefined" ? window.location.origin : "";
+const BACKEND_BASE = configuredBase || (import.meta.env.DEV ? "http://localhost:5000" : runtimeOrigin);
 
 // Create a dedicated Axios instance pointing to our backend API
 const api = axios.create({
