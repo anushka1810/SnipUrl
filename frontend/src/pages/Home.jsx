@@ -22,7 +22,7 @@ function Home() {
   };
 
   return (
-    <div className="min-h-screen lg:h-screen lg:overflow-hidden bg-transparent flex flex-col lg:flex-row relative">
+    <div className="min-h-screen bg-transparent flex flex-col lg:flex-row relative overflow-x-hidden">
       <BackgroundStars />
       
       {/* ── Left Side: Hero ───────────────────────────────────────────────────── */}
@@ -61,8 +61,8 @@ function Home() {
       </header>
 
       {/* ── Right Side: Main Content ──────────────────────────────────────────────────── */}
-      <main className="flex-1 lg:flex-[1.2] flex flex-col justify-center items-center px-4 py-12 lg:py-16 relative z-10 w-full">
-        <div className="w-full max-w-2xl lg:max-w-xl xl:max-w-2xl px-2 sm:px-0 lg:my-auto">
+      <main className="flex-1 lg:flex-[1.2] flex flex-col items-center px-4 py-12 lg:pt-24 lg:pb-16 relative z-10 w-full">
+        <div className="w-full max-w-2xl lg:max-w-xl xl:max-w-2xl px-2 sm:px-0">
 
           {/* Card with Glassmorphism and entrance animation */}
           <div className="glass-panel rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white/60 p-6 sm:p-10 animate-fade-in-up border border-slate-100">

@@ -16,25 +16,41 @@ const nanoid = customAlphabet(
 // @access  Public
 // -------------------------------------------------------------------
 export const shortenUrl = async (req, res, next) => {
-  const { longUrl } = req.body;
+  let { longUrl } = req.body;
 
-  // 1. Validate that the URL is provided
-  if (!longUrl) {
+  // 1. Validate that the URL is provided and trim whitespace
+  if (!longUrl || typeof longUrl !== "string") {
     return res.status(400).json({ error: "Please provide a URL to shorten." });
   }
+  longUrl = longUrl.trim();
 
-  // 2. Validate URL format using the built-in URL constructor
+  // 2. Validate URL length
+  if (longUrl.length > 2048) {
+    return res.status(400).json({ error: "URL exceeds maximum allowed length of 2048 characters." });
+  }
+
+  // 3. Validate URL format and prevent malicious protocols
   try {
-    new URL(longUrl);
+    const parsedUrl = new URL(longUrl);
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      return res.status(400).json({ error: "Invalid URL protocol. Only http:// and https:// are allowed." });
+    }
   } catch (_) {
     return res.status(400).json({ error: "Invalid URL format. Please include http:// or https://" });
   }
 
+  // 4. Prevent recursive self-shortening loops
+  const baseUrl = process.env.BASE_URL || "http://localhost:5000";
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+  if (longUrl.startsWith(baseUrl) || longUrl.startsWith(frontendUrl)) {
+    return res.status(400).json({ error: "Cannot shorten URLs originating from this service." });
+  }
+
   try {
-    // 3. Check if this long URL has already been shortened → return existing
+    // 5. Check if this long URL has already been shortened → return existing
     const existing = await Url.findOne({ longUrl });
     if (existing) {
-      const shortUrl = `${process.env.BASE_URL}/api/url/${existing.shortCode}`;
+      const shortUrl = `${baseUrl}/api/url/${existing.shortCode}`;
       return res.status(200).json({
         shortUrl,
         shortCode: existing.shortCode,
@@ -44,23 +60,35 @@ export const shortenUrl = async (req, res, next) => {
       });
     }
 
-    // 4. Generate a unique 7-character short code
+    // 6. Generate a unique 7-character short code with robust collision retry
     let shortCode;
-    let isUnique = false;
+    let newUrl;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 5;
 
-    // Loop to ensure uniqueness (collision is extremely rare but handled)
-    while (!isUnique) {
+    while (attempts < MAX_ATTEMPTS) {
       shortCode = nanoid();
-      const exists = await Url.findOne({ shortCode });
-      if (!exists) isUnique = true;
+      try {
+        newUrl = new Url({ shortCode, longUrl });
+        await newUrl.save();
+        break; // Success! Break out of the loop
+      } catch (err) {
+        if (err.code === 11000) {
+          // Duplicate key error (collision), try again
+          attempts++;
+        } else {
+          // Some other DB error
+          throw err;
+        }
+      }
     }
 
-    // 5. Save new URL document to MongoDB
-    const newUrl = new Url({ shortCode, longUrl });
-    await newUrl.save();
+    if (attempts === MAX_ATTEMPTS) {
+      return res.status(500).json({ error: "Could not generate a unique short code. Please try again." });
+    }
 
-    // 6. Build the full short URL and return it
-    const shortUrl = `${process.env.BASE_URL}/api/url/${shortCode}`;
+    // 7. Build the full short URL and return it
+    const shortUrl = `${baseUrl}/api/url/${shortCode}`;
 
     return res.status(201).json({
       shortUrl,
